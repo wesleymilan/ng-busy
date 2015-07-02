@@ -60,16 +60,18 @@
                     },
                         this.setOriginalMessageElement = function(element) {
                             $scope.originalMessageElement = element;
+                        },
+                        this.setNgDisabledElement = function(val) {
+                            $scope.ngDisabled = val;
                         }
                 }],
-                link: function(scope, element, attrs) {
+                link: function(scope, element, attrs, transclude) {
                     attrs.$observe('busy', function(val) {
                         scope.busyMessage = val;
                     });
                     attrs.$observe('original', function(val) {
                         scope.originalMessage = val;
                     });
-
                     attrs.$observe('busyWhenUrl', function(val) {
                         scope.busyWhenUrl = val;
                     });
@@ -86,7 +88,6 @@
                         var parsed = $parse(val)(scope);
                         scope.busyDisabled = angular.isDefined(parsed) ? parsed : true;
                     });
-
                     attrs.$observe('notBusyWhenUrl', function(val) {
                         scope.notBusyWhenUrl = val;
                     });
@@ -113,11 +114,10 @@
 
                     scope.$on('busy.begin', function(evt, config) {
                         if (!scope.busy && scope.isBusyFor(config, true)) {
-                            //scope.originalContent = element.html();
 
                             if (scope.busyDisabled) $timeout(function() {element.attr('disabled', true);});
 
-                            var msgElement = scope.busyMessageElement;// ? scope.busyMessageElement.clone() : null;
+                            var msgElement = scope.busyMessageElement;
                             if (msgElement || scope.busyMessage) element.html('').append(msgElement || scope.busyMessage);
 
                             element.removeClass(scope.busyRemoveClasses).addClass(scope.busyAddClasses);
@@ -128,11 +128,10 @@
 
                     scope.$on('busy.end', function(evt, config) {
                         if (scope.busy && scope.isBusyFor(config)) {
-                            //if (scope.originalContent) element.html(scope.originalContent);
 
-                            element.attr('disabled', scope.notBusyDisabled===true);
+                            element.attr('disabled', scope.ngDisabled);
 
-                            var msgElement = scope.originalMessageElement;// ? scope.originalMessageElement.clone() : null;
+                            var msgElement = scope.originalMessageElement;
                             if (msgElement || scope.originalMessage) element.html('').append(msgElement || scope.originalMessage);
 
                             element.removeClass(scope.notBusyRemoveClasses).addClass(scope.notBusyAddClasses);
@@ -143,6 +142,18 @@
                 }
             }
         }])
+        .directive('ngDisabled', function() {
+            return {
+                require: '^busy',
+                compile: function(element, attr) {
+                    return function link(scope, element, attrs, busyCtrl) {
+                        scope.$watch(attrs.ngDisabled, function (val) {
+                            busyCtrl.setNgDisabledElement(val);
+                        });
+                    }
+                }
+            }
+        })
         .directive('originalMessage', function() {
             return {
                 restrict: 'AE',
